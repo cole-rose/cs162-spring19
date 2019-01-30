@@ -1,0 +1,58 @@
+- What is the value of argv?
+argv = (char **) 0x7fffffffe638
+
+- What is pointed to by argv? (hint: print argv[0])
+argv[0] =  0x7fffffffe852 "/home/vagrant/code/personal/hw0/wc"
+
+- What is the address of the function main?
+main = 0x40071b
+
+- Try info stack. Explain what you see.
+#0 	__libc_start_main (main=0x40071b <main>, argc=2, argv=0x7fffffffe638, init=<optimized out>, fini=<optimized out>, 		rtld_fini=<optimized out>, stack_end=0x7fffffffe628) at libc-start.c:321
+#1  0x0000000000400589 in _start ()
+The stack has the info of the call (location of the call, arguments of the call)
+
+- Try info frame. Explain what you see.
+I can observe the current frame's info:
+	Stack level 0, frame at 0x7fffffffe620
+ 		. The address of this stack frame
+ 	rip = 0x7ffff7a32f45 in __libc_start_main (libc-start.c:321); saved rip = 0x400589
+ 		. The address of the next frame
+ 	called by frame at 0x0
+ 		. The address of the caller stack frame
+ 	source language c.
+ 		. Language
+ 	Arglist at 0x7fffffffe558, args: main=0x40071b <main>, argc=2, argv=0x7fffffffe638, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7fffffffe628
+ 		. The address of the arguments
+ 	Locals at 0x7fffffffe558, Previous frame's sp is 0x7fffffffe620
+ 		. The address of local variables
+ 	Saved registers:
+  	rbx at 0x7fffffffe5f0, rbp at 0x7fffffffe5f8, r12 at 0x7fffffffe600, r13 at 0x7fffffffe608, r14 at 0x7fffffffe610, rip at 0x7fffffffe618
+  		. Address of registers were saved in the frame
+
+- Try info registers. Which registers are holding aspects of the program that you recognize?
+rax            0x0	0
+rbx            0x0	0
+rcx            0x0	0
+rdx            0x0	0
+rsi            0x7ffff7dd37b8	140737351858104
+rdi            0x0	0
+rbp            0x0	0x0
+rsp            0x7fffffffe560	0x7fffffffe560
+r8             0x6020f0	6299888
+r9             0x7ffff7fed740	140737354061632
+r10            0x7fffffffe2d0	140737488347856
+r11            0x7ffff7a94120	140737348452640
+r12            0x400560	4195680
+r13            0x7fffffffe630	140737488348720
+r14            0x0	0
+r15            0x0	0
+rip            0x7ffff7a32f45	0x7ffff7a32f45 <__libc_start_main+245>
+eflags         0x206	[ PF IF ]
+cs             0x33	51
+ss             0x2b	43
+ds             0x0	0
+es             0x0	0
+fs             0x0	0
+gs             0x0	0
+The registers are holding aspects of the program are those get returned from info frame.
