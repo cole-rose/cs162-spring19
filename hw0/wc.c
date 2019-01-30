@@ -18,6 +18,9 @@ void countLetters(FILE *input_file, char *file_name){
 			is_whitespace = true;
 		} else if (c == ' ' || c == '\t' || c == '\r') {
 			is_whitespace = true;
+		} else if (c == '\x0'){
+			// special case. Do nothing
+			;
 		}
 		// ecounter a printable character (not a whitespace)
 		else {
