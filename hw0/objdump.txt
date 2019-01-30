@@ -1,11 +1,15 @@
 - What file format is used for this binary? And what architecture is it compiled for?
-
+	. File format: elf64-x86-64
+	. Architecture: i386:x86-64
 
 - What are some of the names of segment/sections you find?
+	.text
+	.dynamic
+	.data
 
-
-- What segment/section contains main (the function) and what is the address of main? (It should
-be the same as what you saw in gdb)
-
+- What segment/section contains main (the function) and what is the address of main? (It should be the same as what you saw in gdb)
+	. Section contains main is .text
+	. Address of main: 0x40071b
 
 - Do you see the stack segment anywhere? What about the heap? Explain
+	No stack and heap segment because they are allocated during run-time.

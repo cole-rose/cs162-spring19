@@ -13,21 +13,21 @@ void countLetters(FILE *input_file, char *file_name){
 
 	// read file
 	while ((c = fgetc(input_file)) != EOF)  {
-		if (c == '\n' || c == '\0'){
+		if (c == '\n'){
 			lines_count += 1;
 			is_whitespace = true;
-		} else if (c == ' ' || c == '\t') {
+		} else if (c == ' ' || c == '\t' || c == '\r') {
 			is_whitespace = true;
 		}
-		// ecounter a character (not a whitespace)
+		// ecounter a printable character (not a whitespace)
 		else {
 			if (is_whitespace){
-				words_count++;
+				words_count += 1;
 			}
 			is_whitespace = false;
 		}
 		last_char = c;
-		characters_count++;
+		characters_count += 1;
 	}
 	// If input is standard input
 	if (file_name == "stdin"){
