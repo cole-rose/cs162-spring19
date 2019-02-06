@@ -63,7 +63,6 @@ int cmd_exit(unused struct tokens *tokens) {
 
 /* Go to a directory */
 int cmd_cd(unused struct tokens *tokens){
-  printf("This is cd\n");
   chdir(tokens_get_token(tokens, 1));
   return 1;
 }
@@ -73,7 +72,7 @@ int cmd_pwd(unused struct tokens *tokens){
   char cwd[1024];
   chdir("/path/to/change/directory/to");
   getcwd(cwd, sizeof(cwd));
-  printf("Current directory: %s\n", cwd);
+  printf("%s\n", cwd);
   return 1;
 }
 
@@ -132,7 +131,7 @@ int main(unused int argc, unused char *argv[]) {
       cmd_table[fundex].fun(tokens);
     } else {
       /* REPLACE this to run commands as programs. */
-      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+      fprintf(stdout, "CS 162 is amazing\n");
     }
 
     if (shell_is_interactive)
