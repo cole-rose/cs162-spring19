@@ -105,7 +105,7 @@ char *find_command(char *path, char *cmd) {
     strcat(path_new, "/"); // path with "/"
     strcat(path_new, cmd); // path with the command
     //path resolution
-    if (access(path_new, F_OK) == 0){
+    if (access(path_new, F_OK) == 0) {
         return path_new;
     }
     path = path + length + 1;
@@ -118,10 +118,10 @@ char *get_path(char *cmd) {
 
 //    fprintf(stdout, "Inside get_path: path: %s\n", path);
 
-    if (cmd[0] == '/' || cmd[0] == '.'){
+    if (cmd[0] == '/' || cmd[0] == '.') {
         char *c = realpath(cmd, command);
         //path resolution
-        if (access(c, F_OK) == 0){
+        if (access(c, F_OK) == 0) {
             return c;
         }
         return NULL;
@@ -129,6 +129,13 @@ char *get_path(char *cmd) {
     return find_command(path, cmd);
 }
 
+void file_redirection(char *file, char *operation) {
+    if (operation[0] == '>') {
+        freopen(file[0], "w", stdout);
+    } else if (operation[0] == '<') {
+        freopen(file[0], "r", stdin);
+    }
+}
 
 /* Intialization procedures for this shell */
 void init_shell() {
@@ -161,6 +168,9 @@ int main(unused int argc, unused char *argv[]) {
 
     static char line[4096];
     int line_num = 0;
+    enum flag {
+        In = 0, Out = 1
+    } operator;
 
     /* Please only print shell prompts when standard input is not a tty */
     if (shell_is_interactive)
@@ -177,16 +187,42 @@ int main(unused int argc, unused char *argv[]) {
 //            fprintf(stdout, "%s\t", tokens_get_token(tokens, index));
 //        }
 //        fprintf(stdout, "\n");
-
+        char *first_arg = tokens_get_token(tokens, 0);
+        char *file;
         /* Find which built-in function to run. */
         int fundex = lookup(tokens_get_token(tokens, 0));
 
         if (fundex >= 0) {
             cmd_table[fundex].fun(tokens);
+
+            FILE *fin = stdin;
+            FILE *fout = stdout;
+
+            for (int i = 0; i < tokens_length; i++) {
+                char *token = tokens_get_token(tokens, i);
+
+                if (token[0] == '<') {
+                    operator = In;
+                    file = tokens_get_token(tokens, ++i);
+                    fgets(line, 4096, fopen(file, "r"));
+                } else if (token[0] == '>') {
+                    operator = Out;
+                    file = tokens_get_token(tokens, ++i);
+                    fout = fopen(file, "w");
+                }
+            }
+            if (operator == 1) {
+                fclose(fout);
+            }
+            if (operator == 0) {
+                fclose(fin);
+            }
+
+
         } else {
             /* REPLACE this to run commands as programs. */
 
-            char *first_arg = tokens_get_token(tokens, 0);
+
 //            fprintf(stdout, "cmd: %s\t", first_arg);
             char *path = get_path(first_arg);
 //            fprintf(stdout, "cmd_path: %s\t\n", cmd_path);
@@ -200,15 +236,35 @@ int main(unused int argc, unused char *argv[]) {
 
                 int status;
 
-                if (!pid){
-                    char *args[tokens_length+1];
-                    int index=0;
-                    for(int i = 0; i<tokens_length; i++) {
-                        args[index++] = tokens_get_token(tokens, i);
+                if (!pid) {
+                    char *args[tokens_length + 1];
+                    int index = 0;
+                    setpgid(getpid(), getpid());
+                    for (int i = 0; i < tokens_length; i++) {
+                        char *token = tokens_get_token(tokens, i);
+
+                        if (token[0] == '>') {
+                            operator = Out;
+                            file = tokens_get_token(tokens, ++i);
+                            freopen(file, "w", stdout);
+                        } else if (token[0] == '<') {
+                            operator = In;
+                            file = tokens_get_token(tokens, ++i);
+                            freopen(file, "r", stdin);
+                        } else {
+                            args[index++] = tokens_get_token(tokens, i);
+                        }
                     }
 
                     args[index] = NULL; // set null pointer at the end of char
                     execv(path, args);
+                    if (operator == 1) {
+                        fclose(stdout);
+                    }
+                    if (operator == 0) {
+                        fclose(stdin);
+                    }
+
                     exit(0);
                 } else {
                     // wait till the child process finishes
