@@ -87,7 +87,6 @@ int lookup(char cmd[]) {
     return -1;
 }
 
-/* find cmd in path */
 char *find_command(char *path, char *cmd) {
     size_t length_path = strlen(path);
     if (length_path == 0) {
@@ -102,9 +101,13 @@ char *find_command(char *path, char *cmd) {
     }
     char *path_new = malloc(length + strlen(cmd) + 2);
     strncpy(path_new, path, length);
-    const char *d = "/";
-    strcat(path_new, d);
-    strcat(path_new, cmd);
+//    fprintf(stdout, "path_new: %s\n", path_new);
+    strcat(path_new, "/"); // path with "/"
+    strcat(path_new, cmd); // path with the command
+    //path resolution
+    if (access(path_new, F_OK) == 0){
+        return path_new;
+    }
     path = path + length + 1;
     return find_command(path, cmd);
 }
@@ -116,7 +119,12 @@ char *get_path(char *cmd) {
 //    fprintf(stdout, "Inside get_path: path: %s\n", path);
 
     if (cmd[0] == '/' || cmd[0] == '.'){
-        return realpath(cmd, command);
+        char *c = realpath(cmd, command);
+        //path resolution
+        if (access(c, F_OK) == 0){
+            return c;
+        }
+        return NULL;
     }
     return find_command(path, cmd);
 }
@@ -209,7 +217,7 @@ int main(unused int argc, unused char *argv[]) {
 
 
             } else {
-                fprintf(stdout, "I hate this\n");
+//                fprintf(stdout, "I hate this\n");
                 fprintf(stdout, "CS 162 is amazing\n");
             }
         }
