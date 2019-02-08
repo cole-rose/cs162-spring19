@@ -195,29 +195,6 @@ int main(unused int argc, unused char *argv[]) {
         if (fundex >= 0) {
             cmd_table[fundex].fun(tokens);
 
-            FILE *fin = stdin;
-            FILE *fout = stdout;
-
-            for (int i = 0; i < tokens_length; i++) {
-                char *token = tokens_get_token(tokens, i);
-
-                if (token[0] == '<') {
-                    operator = In;
-                    file = tokens_get_token(tokens, ++i);
-                    fgets(line, 4096, fopen(file, "r"));
-                } else if (token[0] == '>') {
-                    operator = Out;
-                    file = tokens_get_token(tokens, ++i);
-                    fout = fopen(file, "w");
-                }
-            }
-            if (operator == 1) {
-                fclose(fout);
-            }
-            if (operator == 0) {
-                fclose(fin);
-            }
-
 
         } else {
             /* REPLACE this to run commands as programs. */
