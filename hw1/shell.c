@@ -229,10 +229,11 @@ int main(unused int argc, unused char *argv[]) {
 
 
                 if (pid == 0) {
+//                    signal(SIGINT, SIG_DFL);
                     restore_signal();
                     char *args[tokens_length + 1];
                     int index = 0;
-                    setpgid(getpid(), getpid());
+//                    setpgid(getpid(), getpid());
 
                     for (int i = 0; i < tokens_length; i++) {
                         char *token = tokens_get_token(tokens, i);
@@ -263,15 +264,17 @@ int main(unused int argc, unused char *argv[]) {
                     if (operator == 0) {
                         fclose(stdin);
                     }
-                    
+
 
                     exit(0);
                 } else {
+//                    signal(SIGINT, SIG_IGN);
+                    ignore_signal();
                     int status;
-                    tcsetpgrp(STDIN_FILENO, pid);
+//                    tcsetpgrp(STDIN_FILENO, pid);
                     // wait for the child to terminate
                     wait(&status);
-                    tcsetpgrp(STDIN_FILENO, getpid());
+//                    tcsetpgrp(STDIN_FILENO, getpid());
                 }
 
 
