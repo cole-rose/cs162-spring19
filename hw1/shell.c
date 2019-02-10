@@ -221,7 +221,7 @@ int main(unused int argc, unused char *argv[]) {
 
 
             // if cmd_path is a legal path
-            if (path != NULL) {
+//            if (path != NULL) {
 //                fprintf(stdout, "Path is a legal path\n");
                 // do something here
                 pid_t pid = fork();
@@ -251,13 +251,19 @@ int main(unused int argc, unused char *argv[]) {
                     }
 
                     args[index] = NULL; // set null pointer at the end of char
-                    execv(path, args);
+                    // if error occurs
+//                    execv(path, args);
+                    if (execv(path, args) < 0){
+                        fprintf(stdout, "CS 162 is amazing\n");
+                        exit(0);
+                    }
                     if (operator == 1) {
                         fclose(stdout);
                     }
                     if (operator == 0) {
                         fclose(stdin);
                     }
+                    
 
                     exit(0);
                 } else {
@@ -269,10 +275,10 @@ int main(unused int argc, unused char *argv[]) {
                 }
 
 
-            } else {
+//            } else {
 //                fprintf(stdout, "I hate this\n");
-                fprintf(stdout, "CS 162 is amazing\n");
-            }
+//                fprintf(stdout, "CS 162 is amazing\n");
+//            }
         }
         if (shell_is_interactive)
             /* Please only print shell prompts when standard input is not a tty */
