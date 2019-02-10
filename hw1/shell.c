@@ -137,6 +137,18 @@ void file_redirection(char *file, char *operation) {
     }
 }
 
+void restore_signal() {
+    signal(SIGINT, SIG_DFL);
+    signal(SIGTTIN, SIG_DFL);
+    signal(SIGTTOU, SIG_DFL);
+}
+
+void ignore_signal(){
+    signal(SIGTTOU, SIG_IGN);
+    signal(SIGINT, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
+}
+
 /* Intialization procedures for this shell */
 void init_shell() {
     /* Our shell is connected to standard input. */
@@ -151,6 +163,8 @@ void init_shell() {
          * foreground, we'll receive a SIGCONT. */
         while (tcgetpgrp(shell_terminal) != (shell_pgid = getpgrp()))
             kill(-shell_pgid, SIGTTIN);
+
+        ignore_signal();
 
         /* Saves the shell's process id */
         shell_pgid = getpid();
@@ -213,10 +227,12 @@ int main(unused int argc, unused char *argv[]) {
 
                 int status;
 
-                if (!pid) {
+                if (pid == 0) {
+                    restore_signal();
                     char *args[tokens_length + 1];
                     int index = 0;
                     setpgid(getpid(), getpid());
+
                     for (int i = 0; i < tokens_length; i++) {
                         char *token = tokens_get_token(tokens, i);
 
@@ -244,8 +260,10 @@ int main(unused int argc, unused char *argv[]) {
 
                     exit(0);
                 } else {
+                    tcsetpgrp(STDIN_FILENO, pid);
                     // wait till the child process finishes
                     wait(&status);
+                    tcsetpgrp(STDIN_FILENO, getpid());
                 }
 
 
