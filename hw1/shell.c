@@ -79,6 +79,10 @@ int cmd_pwd(unused struct tokens *tokens) {
     return 1;
 }
 
+int cmd_wait(unused struct tokens *tokens){
+    return 1;
+}
+
 /* Looks up the built-in command, if it exists. */
 int lookup(char cmd[]) {
     for (unsigned int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
@@ -195,12 +199,9 @@ int main(unused int argc, unused char *argv[]) {
         struct tokens *tokens = tokenize(line);
 
         // print out each words of the line
-//        size_t index;
+
         size_t tokens_length = tokens_get_length(tokens);
-//        for (index = 0; index < tokens_length; index++) {
-//            fprintf(stdout, "%s\t", tokens_get_token(tokens, index));
-//        }
-//        fprintf(stdout, "\n");
+
         char *first_arg = tokens_get_token(tokens, 0);
         char *file;
         /* Find which built-in function to run. */
@@ -225,7 +226,7 @@ int main(unused int argc, unused char *argv[]) {
                 // do something here
                 pid_t pid = fork();
 
-                int status;
+
 
                 if (pid == 0) {
                     restore_signal();
@@ -260,8 +261,9 @@ int main(unused int argc, unused char *argv[]) {
 
                     exit(0);
                 } else {
+                    int status;
                     tcsetpgrp(STDIN_FILENO, pid);
-                    // wait till the child process finishes
+                    // wait for the child to terminate
                     wait(&status);
                     tcsetpgrp(STDIN_FILENO, getpid());
                 }
