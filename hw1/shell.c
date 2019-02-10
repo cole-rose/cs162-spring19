@@ -35,6 +35,8 @@ int cmd_cd(struct tokens *tokens);
 
 int cmd_pwd(struct tokens *tokens);
 
+int cmd_wait(struct tokens *tokens);
+
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -50,6 +52,7 @@ fun_desc_t cmd_table[] = {
         {cmd_exit, "exit", "exit the command shell"},
         {cmd_cd,   "cd",   "go to a directory"},
         {cmd_pwd,  "pwd",  "show the current working directory"},
+        {cmd_wait,  "wait",  "waits until all background jobs have terminated"}
 };
 
 /* Prints a helpful description for the given command */
@@ -79,8 +82,19 @@ int cmd_pwd(unused struct tokens *tokens) {
     return 1;
 }
 
-int cmd_wait(unused struct tokens *tokens){
-    return 1;
+int cmd_wait(unused struct tokens *tokens) {
+    int status;
+    pid_t pid;
+    // parents wait for all the child processes
+    while ((pid = waitpid(-1, &status, 0)) > 0) {
+        if (status == 0){
+            printf("Child process terminated successfully.");
+        }
+        if (status == 1){
+            printf("Child process terminated with errors.");
+        }
+    }
+    return 0;
 }
 
 /* Looks up the built-in command, if it exists. */
@@ -189,7 +203,7 @@ int main(unused int argc, unused char *argv[]) {
     enum flag {
         In = 0, Out = 1
     } operator;
-
+    int background = 0;
     /* Please only print shell prompts when standard input is not a tty */
     if (shell_is_interactive)
         fprintf(stdout, "%d: ", line_num);
@@ -201,6 +215,11 @@ int main(unused int argc, unused char *argv[]) {
         // print out each words of the line
 
         size_t tokens_length = tokens_get_length(tokens);
+
+        if (strcmp(tokens_get_token(tokens, tokens_length - 1), "&") == 0) {
+//            fprintf(stdout, "& exists\n");
+            background = 1;
+        }
 
         char *first_arg = tokens_get_token(tokens, 0);
         char *file;
@@ -227,7 +246,7 @@ int main(unused int argc, unused char *argv[]) {
                 pid_t pid = fork();
 
 
-
+                int status;
                 if (pid == 0) {
 //                    signal(SIGINT, SIG_DFL);
                     restore_signal();
@@ -267,13 +286,20 @@ int main(unused int argc, unused char *argv[]) {
 
 
                     exit(0);
-                } else {
+                } else { /* parent */
 //                    signal(SIGINT, SIG_IGN);
                     ignore_signal();
-                    int status;
-//                    tcsetpgrp(STDIN_FILENO, pid);
-                    // wait for the child to terminate
-                    wait(&status);
+                    if (background == 1){
+
+//                        int status;
+//                      tcsetpgrp(STDIN_FILENO, pid);
+                        // wait for the child to terminate
+//                        wait(&status);
+                        waitpid(pid, &status, 0);
+                    } else{
+                        wait(&status);
+                    }
+
 //                    tcsetpgrp(STDIN_FILENO, getpid());
                 }
 
