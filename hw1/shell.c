@@ -21,6 +21,7 @@ bool shell_is_interactive;
 /* File descriptor for the shell input */
 int shell_terminal;
 int PATH_MAX = 1024;
+int open_child = 0;
 /* Terminal mode settings for the shell */
 struct termios shell_tmodes;
 
@@ -167,8 +168,22 @@ void ignore_signal(){
     signal(SIGTTIN, SIG_IGN);
 }
 
+void child_handler(int signum){
+//    int status;
+//    pid_t pid;
+
+    fprintf(stdout, "calling child_handler\n");
+        open_child -= 1;
+//    pid = waitpid(-1, &status, WNOHANG);
+}
+
 /* Intialization procedures for this shell */
 void init_shell() {
+
+
+    ignore_signal();
+
+    signal(SIGCHLD, child_handler);
     /* Our shell is connected to standard input. */
     shell_terminal = STDIN_FILENO;
 
@@ -182,7 +197,7 @@ void init_shell() {
         while (tcgetpgrp(shell_terminal) != (shell_pgid = getpgrp()))
             kill(-shell_pgid, SIGTTIN);
 
-        ignore_signal();
+
 
         /* Saves the shell's process id */
         shell_pgid = getpid();
@@ -217,7 +232,7 @@ int main(unused int argc, unused char *argv[]) {
         size_t tokens_length = tokens_get_length(tokens);
 
         if (strcmp(tokens_get_token(tokens, tokens_length - 1), "&") == 0) {
-//            fprintf(stdout, "& exists\n");
+            fprintf(stdout, "& exists\n");
             background = 1;
         }
 
@@ -247,6 +262,10 @@ int main(unused int argc, unused char *argv[]) {
 
 
                 int status;
+                // fork child process fails
+                if (pid < 0){
+                    return 1;
+                }
                 if (pid == 0) {
 //                    signal(SIGINT, SIG_DFL);
                     restore_signal();
@@ -272,7 +291,7 @@ int main(unused int argc, unused char *argv[]) {
 
                     args[index] = NULL; // set null pointer at the end of char
                     // if error occurs
-//                    execv(path, args);
+                    execv(path, args);
                     if (execv(path, args) < 0){
                         fprintf(stdout, "CS 162 is amazing\n");
                         exit(0);
@@ -288,17 +307,35 @@ int main(unused int argc, unused char *argv[]) {
                     exit(0);
                 } else { /* parent */
 //                    signal(SIGINT, SIG_IGN);
-                    ignore_signal();
-                    if (background == 1){
+                    open_child += 1;
+                    setpgid(pid, pid);
+                    tcsetpgrp(shell_terminal, pid);
+                    if (!background){
+//                        ignore_signal();
+                        fprintf(stdout, "Inside !background. No &.\n");
 
+
+//                        int child_status;
 //                        int status;
 //                      tcsetpgrp(STDIN_FILENO, pid);
                         // wait for the child to terminate
 //                        wait(&status);
-                        waitpid(pid, &status, 0);
-                    } else{
-                        wait(&status);
+//                        waitpid(pid, &status, 0);
+//                        if (waitpid(pid, &child_status, 0) < 0) {
+//                            fprintf(stderr, "waitpid error\n");
+//                        }
+//                        waitpid(pid, 0,0);
+//                            wait(&child_status);
+//                        wait(&status);
+                        waitpid(pid, 0, 0);
+//                    wait(NULL);
                     }
+                    ignore_signal();
+                    tcsetpgrp(shell_terminal, shell_pgid);
+//                    else{
+//                        fprintf(stdout, "background is: %d\n", background);
+////                        wait(&status);
+//                    }
 
 //                    tcsetpgrp(STDIN_FILENO, getpid());
                 }
