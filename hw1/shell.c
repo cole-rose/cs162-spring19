@@ -92,7 +92,7 @@ int cmd_wait(unused struct tokens *tokens) {
 //            printf("Child process terminated successfully.");
             ;
         }
-        elif (status == 1){
+        else if (status == 1){
             printf("Child process terminated with errors.");
         }
     }
@@ -262,7 +262,7 @@ int main(unused int argc, unused char *argv[]) {
                 pid_t pid = fork();
 
 
-                int status;
+//                int status;
                 // fork child process fails
                 if (pid < 0){
                     return 1;
