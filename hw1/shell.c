@@ -89,9 +89,10 @@ int cmd_wait(unused struct tokens *tokens) {
     // parents wait for all the child processes
     while ((pid = waitpid(-1, &status, 0)) > 0) {
         if (status == 0){
-            printf("Child process terminated successfully.");
+//            printf("Child process terminated successfully.");
+            ;
         }
-        if (status == 1){
+        elif (status == 1){
             printf("Child process terminated with errors.");
         }
     }
@@ -172,7 +173,7 @@ void child_handler(int signum){
 //    int status;
 //    pid_t pid;
 
-    fprintf(stdout, "calling child_handler\n");
+//    fprintf(stdout, "calling child_handler\n");
         open_child -= 1;
 //    pid = waitpid(-1, &status, WNOHANG);
 }
@@ -232,7 +233,7 @@ int main(unused int argc, unused char *argv[]) {
         size_t tokens_length = tokens_get_length(tokens);
 
         if (strcmp(tokens_get_token(tokens, tokens_length - 1), "&") == 0) {
-            fprintf(stdout, "& exists\n");
+//            fprintf(stdout, "& exists\n");
             background = 1;
         }
 
