@@ -313,7 +313,7 @@ int main(unused int argc, unused char *argv[]) {
                     tcsetpgrp(shell_terminal, pid);
                     if (!background){
 //                        ignore_signal();
-                        fprintf(stdout, "Inside !background. No &.\n");
+//                        fprintf(stdout, "Inside !background. No &.\n");
 
 
 //                        int child_status;
