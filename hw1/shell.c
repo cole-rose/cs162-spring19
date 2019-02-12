@@ -88,11 +88,7 @@ int cmd_wait(unused struct tokens *tokens) {
     pid_t pid;
     // parents wait for all the child processes
     while ((pid = waitpid(-1, &status, 0)) > 0) {
-        if (status == 0){
-//            printf("Child process terminated successfully.");
-            ;
-        }
-        else if (status == 1){
+        if (status == 1){
             printf("Child process terminated with errors.");
         }
     }
@@ -121,7 +117,7 @@ char *find_command(char *path, char *cmd) {
     }
     char *path_new = malloc(length + strlen(cmd) + 2);
     strncpy(path_new, path, length);
-//    fprintf(stdout, "path_new: %s\n", path_new);
+
     strcat(path_new, "/"); // path with "/"
     strcat(path_new, cmd); // path with the command
     //path resolution
@@ -135,8 +131,6 @@ char *find_command(char *path, char *cmd) {
 char *get_path(char *cmd) {
     char *path = getenv("PATH");
     char *command = malloc(4096); // 1024
-
-//    fprintf(stdout, "Inside get_path: path: %s\n", path);
 
     if (cmd[0] == '/' || cmd[0] == '.') {
         char *c = realpath(cmd, command);
@@ -170,21 +164,14 @@ void ignore_signal(){
 }
 
 void child_handler(int signum){
-//    int status;
-//    pid_t pid;
-
-//    fprintf(stdout, "calling child_handler\n");
-        open_child -= 1;
-//    pid = waitpid(-1, &status, WNOHANG);
+    open_child -= 1;
 }
 
 /* Intialization procedures for this shell */
 void init_shell() {
-
-
     ignore_signal();
-
     signal(SIGCHLD, child_handler);
+
     /* Our shell is connected to standard input. */
     shell_terminal = STDIN_FILENO;
 
@@ -197,8 +184,6 @@ void init_shell() {
          * foreground, we'll receive a SIGCONT. */
         while (tcgetpgrp(shell_terminal) != (shell_pgid = getpgrp()))
             kill(-shell_pgid, SIGTTIN);
-
-
 
         /* Saves the shell's process id */
         shell_pgid = getpid();
@@ -213,7 +198,6 @@ void init_shell() {
 
 int main(unused int argc, unused char *argv[]) {
     init_shell();
-
     static char line[4096];
     int line_num = 0;
     enum flag {
@@ -228,12 +212,9 @@ int main(unused int argc, unused char *argv[]) {
         /* Split our line into words. */
         struct tokens *tokens = tokenize(line);
 
-        // print out each words of the line
-
         size_t tokens_length = tokens_get_length(tokens);
 
         if (strcmp(tokens_get_token(tokens, tokens_length - 1), "&") == 0) {
-//            fprintf(stdout, "& exists\n");
             background = 1;
         }
 
@@ -244,108 +225,60 @@ int main(unused int argc, unused char *argv[]) {
 
         if (fundex >= 0) {
             cmd_table[fundex].fun(tokens);
-
-
         } else {
             /* REPLACE this to run commands as programs. */
-
-
-//            fprintf(stdout, "cmd: %s\t", first_arg);
             char *path = get_path(first_arg);
-//            fprintf(stdout, "cmd_path: %s\t\n", cmd_path);
+            pid_t pid = fork();
+            // fork child process fails
+            if (pid < 0){
+                return 1;
+            }
+            if (pid == 0) {
+                restore_signal();
+                char *args[tokens_length + 1];
+                int index = 0;
 
+                for (int i = 0; i < tokens_length; i++) {
+                    char *token = tokens_get_token(tokens, i);
 
-            // if cmd_path is a legal path
-//            if (path != NULL) {
-//                fprintf(stdout, "Path is a legal path\n");
-                // do something here
-                pid_t pid = fork();
-
-
-//                int status;
-                // fork child process fails
-                if (pid < 0){
-                    return 1;
+                    if (token[0] == '>') {
+                        operator = Out;
+                        file = tokens_get_token(tokens, ++i);
+                        freopen(file, "w", stdout);
+                    } else if (token[0] == '<') {
+                        operator = In;
+                        file = tokens_get_token(tokens, ++i);
+                        freopen(file, "r", stdin);
+                    } else {
+                        args[index++] = tokens_get_token(tokens, i);
+                    }
                 }
-                if (pid == 0) {
-//                    signal(SIGINT, SIG_DFL);
-                    restore_signal();
-                    char *args[tokens_length + 1];
-                    int index = 0;
-//                    setpgid(getpid(), getpid());
 
-                    for (int i = 0; i < tokens_length; i++) {
-                        char *token = tokens_get_token(tokens, i);
-
-                        if (token[0] == '>') {
-                            operator = Out;
-                            file = tokens_get_token(tokens, ++i);
-                            freopen(file, "w", stdout);
-                        } else if (token[0] == '<') {
-                            operator = In;
-                            file = tokens_get_token(tokens, ++i);
-                            freopen(file, "r", stdin);
-                        } else {
-                            args[index++] = tokens_get_token(tokens, i);
-                        }
-                    }
-
-                    args[index] = NULL; // set null pointer at the end of char
-                    // if error occurs
-                    execv(path, args);
-                    if (execv(path, args) < 0){
-                        fprintf(stdout, "CS 162 is amazing\n");
-                        exit(0);
-                    }
-                    if (operator == 1) {
-                        fclose(stdout);
-                    }
-                    if (operator == 0) {
-                        fclose(stdin);
-                    }
-
-
+                args[index] = NULL; // set null pointer at the end of char
+                // if error occurs
+                execv(path, args);
+                if (execv(path, args) < 0){
+                    fprintf(stdout, "CS 162 is amazing\n");
                     exit(0);
-                } else { /* parent */
-//                    signal(SIGINT, SIG_IGN);
-                    open_child += 1;
-                    setpgid(pid, pid);
-                    tcsetpgrp(shell_terminal, pid);
-                    if (!background){
-//                        ignore_signal();
-//                        fprintf(stdout, "Inside !background. No &.\n");
-
-
-//                        int child_status;
-//                        int status;
-//                      tcsetpgrp(STDIN_FILENO, pid);
-                        // wait for the child to terminate
-//                        wait(&status);
-//                        waitpid(pid, &status, 0);
-//                        if (waitpid(pid, &child_status, 0) < 0) {
-//                            fprintf(stderr, "waitpid error\n");
-//                        }
-//                        waitpid(pid, 0,0);
-//                            wait(&child_status);
-//                        wait(&status);
-                        waitpid(pid, 0, 0);
-//                    wait(NULL);
-                    }
-                    ignore_signal();
-                    tcsetpgrp(shell_terminal, shell_pgid);
-//                    else{
-//                        fprintf(stdout, "background is: %d\n", background);
-////                        wait(&status);
-//                    }
-
-//                    tcsetpgrp(STDIN_FILENO, getpid());
+                }
+                if (operator == 1) {
+                    fclose(stdout);
+                }
+                if (operator == 0) {
+                    fclose(stdin);
                 }
 
-
-//            } else {
-//                fprintf(stdout, "I hate this\n");
-//                fprintf(stdout, "CS 162 is amazing\n");
-//            }
+                exit(1);
+            } else { /* parent */
+                open_child += 1;
+                setpgid(pid, pid);
+                tcsetpgrp(shell_terminal, pid);
+                if (!background) {
+                    waitpid(pid, 0, 0);
+                }
+                ignore_signal();
+                tcsetpgrp(shell_terminal, shell_pgid);
+            }
         }
         if (shell_is_interactive)
             /* Please only print shell prompts when standard input is not a tty */
