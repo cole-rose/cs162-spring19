@@ -18,7 +18,7 @@
 #include "libhttp.h"
 #include "wq.h"
 
-#define LIBHTTP_REQUEST_MAX_SIZE 8192
+#define BUFFER_SIZE 8192
 /*
  * Global configuration variables.
  * You need to use these in your implementation of handle_files_request and
@@ -38,14 +38,13 @@ void not_found_response(int fd){
 }
 
 void http_file_response(int fd, char *file_name, struct stat *fileStat){
-  char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE);
+  char *buffer = malloc(BUFFER_SIZE);
   char file_size[64];
   sprintf(file_size, "%lu", fileStat->st_size);
 
     FILE *file = fopen(file_name, "r");
     if (file != NULL){
 //      fprintf(stdout, "Can open file.\n");
-
       http_start_response(fd, 200);
       http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
 //      fprintf(stdout, "Content-Type: %s\n", http_get_mime_type(file_name));
@@ -53,17 +52,19 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
 //      fprintf(stdout, "Content-Length: %s\n", file_size);
       http_end_headers(fd);
 
-      size_t newLen = fread(buffer, sizeof(char), 5000, file);
+//      size_t newLen = fread(buffer, sizeof(char), 5000, file);
+      size_t newLen = fread(buffer, sizeof(char), BUFFER_SIZE, file);
       if ( ferror( file ) != 0 ) {
         fputs("Error reading file", stderr);
       } else {
         buffer[newLen++] = '\0'; /* Just to be safe. */
       }
 //      http_send_string(fd,buffer);
-      http_send_data(fd, buffer, fileStat->st_size);
+//      http_send_data(fd, buffer, fileStat->st_size);
+      http_send_data(fd, buffer, newLen);
       fclose(file);
 
-      fprintf(stdout, "source: %s\n", buffer);
+//      fprintf(stdout, "source: %s\n", buffer);
 
     }else{
       not_found_response(fd);
@@ -72,6 +73,28 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
   free(buffer);
 }
 
+void http_directory_response(int fd, char *file_name, struct stat *fileStat){
+  ;
+}
+
+//int has_index_file(char* path, char *file_path, struct stat *fileStat) {
+int has_index_file(char* path, struct stat *fileStat) {
+  int status;
+  char* file_name = malloc(BUFFER_SIZE + 1);
+  strcpy(file_name, path);
+  strcat(file_name, "index.html");
+
+  FILE *file = fopen(file_name, "r");
+  if (file != NULL){
+    status = 1;
+    fprintf(stdout, "Oh there's index.html.\n");
+    strcpy(path, file_name);
+  } else{
+    status = 0;
+  }
+  fclose(file);
+  return status;
+}
 /*
  * Reads an HTTP request from stream (fd), and writes an HTTP response
  * containing:
@@ -92,10 +115,10 @@ void handle_files_request(int fd) {
 
   struct http_request *request = http_request_parse(fd);
 
-  char *http_path = malloc(LIBHTTP_REQUEST_MAX_SIZE);
+  char *http_path = malloc(BUFFER_SIZE+1);
   strcpy(http_path, server_files_directory);
   strcat(http_path, request->path);
-//  char *http_path = strcat(server_files_directory, request->path);
+
   fprintf(stdout, "http_path: %s\n", http_path);
   struct stat fileStat;
 
@@ -113,19 +136,27 @@ void handle_files_request(int fd) {
   } else {
     // if HTTP request's path corresponds to a file
     if (S_ISREG(fileStat.st_mode)) {
-//      fprintf(stdout, "is in file\n");
+      fprintf(stdout, "This is file.\n");
       // response a file
       http_file_response(fd, http_path, &fileStat);
     }
       // HTTP request's path is a directory
     else if (S_ISDIR(fileStat.st_mode)) {
+      fprintf(stdout, "This is directory.\n");
 
       // check if index.html exist
-
-//      fprintf(stdout, "is in directory\n");
-
-
-      // else
+      int index_file_check = has_index_file(http_path, &fileStat);
+      fprintf(stdout, "index_file_check: %d\n", index_file_check);
+      // return -1 if index.html file does not exist
+      if (index_file_check == 0){
+        // send a list of file in directory
+        ;
+        // http_directory_response();
+      } else{
+        //send index.html file
+        fprintf(stdout, "http_path with directory: %s\n", http_path);
+        http_file_response(fd, http_path, &fileStat);
+      }
 
     }
   }
