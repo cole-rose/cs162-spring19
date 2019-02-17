@@ -38,32 +38,36 @@ void not_found_response(int fd){
 }
 
 void http_file_response(int fd, char *file_name, struct stat *fileStat){
-  FILE *file = fopen(file_name, "r");
-  char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE + 1);
+  char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE);
   char file_size[64];
   sprintf(file_size, "%lu", fileStat->st_size);
-  if (file != NULL){
-    http_start_response(fd, 200);
-    http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
-    http_send_header(fd, "Content-Length", file_size);
-    http_end_headers(fd);
 
-    char c;
-    // send file content
-    while((c = fgetc(file)) != EOF){
-      strcat(buffer, &c);
+    FILE *file = fopen(file_name, "r");
+    if (file != NULL){
+//      fprintf(stdout, "Can open file.\n");
+
+      http_start_response(fd, 200);
+      http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
+//      fprintf(stdout, "Content-Type: %s\n", http_get_mime_type(file_name));
+      http_send_header(fd, "Content-Length", file_size);
+//      fprintf(stdout, "Content-Length: %s\n", file_size);
+      http_end_headers(fd);
+
+      size_t newLen = fread(buffer, sizeof(char), 5000, file);
+      if ( ferror( file ) != 0 ) {
+        fputs("Error reading file", stderr);
+      } else {
+        buffer[newLen++] = '\0'; /* Just to be safe. */
+      }
+      fclose(file);
+      http_send_string(fd,buffer);
+//      fprintf(stdout, "source: %s\n", buffer);
+
+    }else{
+      not_found_response(fd);
     }
-    fclose(file);
-    http_send_string(fd, buffer);
-    fprintf(stdout, "buffer is now: %s\n", buffer);
-
-  } else{
-    not_found_response(fd);
-  }
 
   free(buffer);
-
-
 }
 
 /*
@@ -91,23 +95,26 @@ void handle_files_request(int fd) {
   fprintf(stdout, "http_path: %s\n", http_path);
   struct stat fileStat;
 
-  if (request == NULL){
+  if (request == NULL) {
     not_found_response(fd);
   }
 
-  if (stat(http_path, &fileStat) < 0){
+  int file_status = stat(http_path, &fileStat);
+  fprintf(stdout, "file_status: %d\n", file_status);
+
+  if (file_status < 0) {
     // send a 404 Not found response
     fprintf(stdout, "stat(http_path, &fileStat) < 0\n");
     not_found_response(fd);
-  } else{
+  } else {
     // if HTTP request's path corresponds to a file
-    if (S_ISREG(fileStat.st_mode)){
+    if (S_ISREG(fileStat.st_mode)) {
       fprintf(stdout, "is in file\n");
       // response a file
       http_file_response(fd, http_path, &fileStat);
     }
-    // HTTP request's path is a directory
-    else if (S_ISDIR(fileStat.st_mode)){
+      // HTTP request's path is a directory
+    else if (S_ISDIR(fileStat.st_mode)) {
 
       // check if index.html exist
 
@@ -117,21 +124,23 @@ void handle_files_request(int fd) {
       // else
 
     }
-    fprintf(stdout, "stat(http_path, &fileStat) > 0\n");
   }
-
-
-
-  http_start_response(fd, 200);
-  http_send_header(fd, "Content-Type", "text/html");
-  http_end_headers(fd);
-  http_send_string(fd,
-      "<center>"
-      "<h1>Welcome to httpserver!</h1>"
-      "<hr>"
-      "<p>Nothing's here yet.</p>"
-      "</center>");
 }
+//    fprintf(stdout, "stat(http_path, &fileStat) > 0\n");
+//  }
+
+
+
+//  http_start_response(fd, 200);
+//  http_send_header(fd, "Content-Type", "text/html");
+//  http_end_headers(fd);
+//  http_send_string(fd,
+//      "<center>"
+//      "<h1>Welcome to httpserver!</h1>"
+//      "<hr>"
+//      "<p>Nothing's here yet.</p>"
+//      "</center>");
+
 
 
 /*
