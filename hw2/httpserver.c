@@ -39,6 +39,7 @@ void not_found_response(int fd){
 
 void http_file_response(int fd, char *file_name, struct stat *fileStat){
   FILE *file = fopen(file_name, "r");
+  char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE + 1);
   char file_size[64];
   sprintf(file_size, "%lu", fileStat->st_size);
   if (file != NULL){
@@ -46,7 +47,7 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
     http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
     http_send_header(fd, "Content-Length", file_size);
     http_end_headers(fd);
-    char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE + 1);
+
     char c;
     // send file content
     while((c = fgetc(file)) != EOF){
@@ -94,7 +95,7 @@ void handle_files_request(int fd) {
     not_found_response(fd);
   }
 
-  if (stat(req_file_path, &fileStat) < 0){
+  if (stat(http_path, &fileStat) < 0){
     // send a 404 Not found response
     fprintf(stdout, "stat(http_path, &fileStat) < 0\n");
     not_found_response(fd);
