@@ -18,6 +18,7 @@
 #include "libhttp.h"
 #include "wq.h"
 
+#define LIBHTTP_REQUEST_MAX_SIZE 8192
 /*
  * Global configuration variables.
  * You need to use these in your implementation of handle_files_request and
@@ -31,6 +32,38 @@ char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
 
+void not_found_response(int fd){
+  http_start_response(fd, 404);
+  http_send_header(fd, "Content-Type:", "text/html");
+}
+
+void http_file_response(int fd, char *file_name, struct stat *fileStat){
+  FILE *file = fopen(file_name, "r");
+  char file_size[64];
+  sprintf(file_size, "%lu", fileStat->st_size);
+  if (file != NULL){
+    http_start_response(fd, 200);
+    http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
+    http_send_header(fd, "Content-Length", file_size);
+    http_end_headers(fd);
+    char *buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE + 1);
+    char c;
+    // send file content
+    while((c = fgetc(file)) != EOF){
+      strcat(buffer, &c);
+    }
+    fclose(file);
+    http_send_string(fd, buffer);
+    fprintf(stdout, "buffer is now: %s\n", buffer);
+
+  } else{
+    not_found_response(fd);
+  }
+
+  free(buffer);
+
+
+}
 
 /*
  * Reads an HTTP request from stream (fd), and writes an HTTP response
@@ -51,6 +84,42 @@ void handle_files_request(int fd) {
    */
 
   struct http_request *request = http_request_parse(fd);
+
+
+  char *http_path = strcat(server_files_directory, request->path);
+  fprintf(stdout, "http_path: %s\n", http_path);
+  struct stat fileStat;
+
+  if (request == NULL){
+    not_found_response(fd);
+  }
+
+  if (stat(req_file_path, &fileStat) < 0){
+    // send a 404 Not found response
+    fprintf(stdout, "stat(http_path, &fileStat) < 0\n");
+    not_found_response(fd);
+  } else{
+    // if HTTP request's path corresponds to a file
+    if (S_ISREG(fileStat.st_mode)){
+      fprintf(stdout, "is in file\n");
+      // response a file
+      http_file_response(fd, http_path, &fileStat);
+    }
+    // HTTP request's path is a directory
+    else if (S_ISDIR(fileStat.st_mode)){
+
+      // check if index.html exist
+
+      fprintf(stdout, "is in directory\n");
+
+
+      // else
+
+    }
+    fprintf(stdout, "stat(http_path, &fileStat) > 0\n");
+  }
+
+
 
   http_start_response(fd, 200);
   http_send_header(fd, "Content-Type", "text/html");
