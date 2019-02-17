@@ -59,9 +59,11 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
       } else {
         buffer[newLen++] = '\0'; /* Just to be safe. */
       }
+//      http_send_string(fd,buffer);
+      http_send_data(fd, buffer, fileStat->st_size);
       fclose(file);
-      http_send_string(fd,buffer);
-//      fprintf(stdout, "source: %s\n", buffer);
+
+      fprintf(stdout, "source: %s\n", buffer);
 
     }else{
       not_found_response(fd);
@@ -90,8 +92,10 @@ void handle_files_request(int fd) {
 
   struct http_request *request = http_request_parse(fd);
 
-
-  char *http_path = strcat(server_files_directory, request->path);
+  char *http_path = malloc(LIBHTTP_REQUEST_MAX_SIZE);
+  strcpy(http_path, server_files_directory);
+  strcat(http_path, request->path);
+//  char *http_path = strcat(server_files_directory, request->path);
   fprintf(stdout, "http_path: %s\n", http_path);
   struct stat fileStat;
 
@@ -100,7 +104,7 @@ void handle_files_request(int fd) {
   }
 
   int file_status = stat(http_path, &fileStat);
-  fprintf(stdout, "file_status: %d\n", file_status);
+//  fprintf(stdout, "file_status: %d\n", file_status);
 
   if (file_status < 0) {
     // send a 404 Not found response
@@ -109,7 +113,7 @@ void handle_files_request(int fd) {
   } else {
     // if HTTP request's path corresponds to a file
     if (S_ISREG(fileStat.st_mode)) {
-      fprintf(stdout, "is in file\n");
+//      fprintf(stdout, "is in file\n");
       // response a file
       http_file_response(fd, http_path, &fileStat);
     }
@@ -118,16 +122,15 @@ void handle_files_request(int fd) {
 
       // check if index.html exist
 
-      fprintf(stdout, "is in directory\n");
+//      fprintf(stdout, "is in directory\n");
 
 
       // else
 
     }
   }
+  free(http_path);
 }
-//    fprintf(stdout, "stat(http_path, &fileStat) > 0\n");
-//  }
 
 
 
