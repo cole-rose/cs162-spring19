@@ -37,11 +37,10 @@ void not_found_response(int fd){
   http_send_header(fd, "Content-Type:", "text/html");
 }
 
-void http_file_response(int fd, char *file_name, struct stat *fileStat){
+void http_file_response(int fd, char *file_name){
   char *buffer = malloc(BUFFER_SIZE+1);
+
   char file_size[64];
-  char file_size_new[64];
-  sprintf(file_size, "%lu", fileStat->st_size);
 
     FILE *file = fopen(file_name, "r");
     if (file != NULL){
@@ -50,22 +49,16 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
 
       fseek(file, 0, SEEK_END);
       int len = ftell(file);
-      sprintf(file_size_new, "%d", len);
+      sprintf(file_size, "%d", len);
 
 //      fprintf(stdout, "Can open file.\n");
       http_start_response(fd, 200);
       http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
-//      fprintf(stdout, "Content-Type: %s\n", http_get_mime_type(file_name));
-//      http_send_header(fd, "Content-Length", file_size);
-      http_send_header(fd, "Content-Length", file_size_new);
-//      fprintf(stdout, "Content-Length: %s\n", file_size);
+      http_send_header(fd, "Content-Length", file_size);
       fprintf(stdout, "Content-Length: %d\n", len);
       http_end_headers(fd);
 
-//      size_t newLen = fread(buffer, sizeof(char), 5000, file);
-
-
-      if ( ferror( file ) != 0 ) {
+      if (ferror(file) != 0 ) {
         fputs("Error reading file", stderr);
       } else {
         buffer[newLen++] = '\0'; /* Just to be safe. */
@@ -181,7 +174,7 @@ void handle_files_request(int fd) {
     if (S_ISREG(fileStat.st_mode)) {
       fprintf(stdout, "This is file.\n");
       // response a file
-      http_file_response(fd, http_path, &fileStat);
+      http_file_response(fd, http_path);
     }
       // HTTP request's path is a directory
     else if (S_ISDIR(fileStat.st_mode)) {
@@ -199,7 +192,7 @@ void handle_files_request(int fd) {
       } else{
         //send index.html file
         fprintf(stdout, "http_path with directory: %s\n", http_path);
-        http_file_response(fd, http_path, &fileStat);
+        http_file_response(fd, http_path);
       }
 
     }
