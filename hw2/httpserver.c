@@ -39,7 +39,6 @@ void not_found_response(int fd){
 
 void http_file_response(int fd, char *file_name){
 
-
   char file_size[64];
 
     FILE *file = fopen(file_name, "r");
@@ -48,7 +47,7 @@ void http_file_response(int fd, char *file_name){
       int len = ftell(file);
       sprintf(file_size, "%d", len);
 
-      //put back to start
+      //put file pointer back to the beginning
       fseek(file, 0, SEEK_SET);
       char *buffer = malloc(len+1);
 
@@ -84,58 +83,83 @@ void http_file_response(int fd, char *file_name){
 
 }
 
-//void http_directory_response(int fd, char *dir_path){
-//  DIR *dir = opendir(dir_path);
-//  struct dirent *dir_entry;
-//  struct stat file_stat;
-//  char *full_path = (char*) malloc(BUFFER_SIZE + 1);
-//  char *entry_link = (char*) malloc(BUFFER_SIZE + 1);
-//
-//  http_start_response(fd, 200);
-//  http_send_header(fd, "Content-type", "text/html");
-//  http_send_header(fd, "Server", "httpserver/1.0");
-//  http_end_headers(fd);
-//  http_send_string(fd, "<h2>Index of ");
-//  http_send_string(fd, dir_path);
-//  http_send_string(fd, " </h2><br>\n");
-//
-//  if (dir != NULL) {
-//    while ((dir_entry = readdir(dir)) != NULL) {
-//      strcpy(full_path, dir_path);
-//      if (full_path[strlen(full_path) - 1] != '/') {
-//        strcat(full_path, "/");
-//      }
-//      strcat(full_path, dir_entry->d_name);
-//      stat(full_path, &file_stat);
-//      if (S_ISDIR(file_stat.st_mode)) {
-//        snprintf(entry_link, BUFFER_SIZE, "<a href='%s/'>%s/</a><br>\n", dir_entry->d_name, dir_entry->d_name);
-//      } else {
-//        snprintf(entry_link, BUFFER_SIZE, "<a href='./%s'>%s/</a><br>\n", dir_entry->d_name, dir_entry->d_name);
-//      }
-//      http_send_string(fd, entry_link);
-//    }
-//    closedir(dir);
-//  }
-//  free(entry_link);
-//  free(full_path);
-//}
+void http_directory_response(int fd, char *dir_path){
+  DIR *dir = opendir(dir_path);
+  struct dirent *dir_entry;
+  struct stat fileStat;
+
+
+  http_start_response(fd, 200);
+  http_send_header(fd, "Content-type", "text/html");
+  http_end_headers(fd);
+
+  fprintf(stdout, "dir_path: %s\n", dir_path);
+
+  if (dir != NULL) {
+    char *full_path = (char*) malloc(BUFFER_SIZE + 1);
+    char *entry_link = (char*) malloc(BUFFER_SIZE + 1);
+
+    while ((dir_entry = readdir(dir)) != NULL) {
+      strcpy(full_path, dir_path);
+        fprintf(stdout, "full_path in strcpy(full_path, dir_path): %s\n", full_path);
+      if (full_path[strlen(full_path) - 1] != '/') {
+        strcat(full_path, "/");
+      }
+      strcat(full_path, dir_entry->d_name);
+      fprintf(stdout, "full_path in strcat(full_path, dir_entry->d_name): %s\n", full_path);
+      int file_status = stat(full_path, &fileStat);
+      if (file_status < 0){
+        not_found_response(fd);
+      } else{
+        if (S_ISDIR(fileStat.st_mode)) {
+          snprintf(entry_link, BUFFER_SIZE, "<a href='%s/'>%s/</a>\n", dir_entry->d_name, dir_entry->d_name);
+        } else {
+          snprintf(entry_link, BUFFER_SIZE, "<a href='./%s'>%s/</a>\n", dir_entry->d_name, dir_entry->d_name);
+        }
+        http_send_string(fd, entry_link);
+      }
+
+    }
+    closedir(dir);
+    free(entry_link);
+    free(full_path);
+
+  }
+}
 
 //int has_index_file(char* path, char *file_path, struct stat *fileStat) {
-int has_index_file(char* path, struct stat *fileStat) {
+int has_index_file(char* path) {
+//  fprintf(stdout, "Inside has_index_file\n");
   int status;
   char* file_name = malloc(BUFFER_SIZE + 1);
+//  fprintf(stdout, "After char file_name\n");
   strcpy(file_name, path);
+//  fprintf(stdout, "After strcpy\n");
   strcat(file_name, "index.html");
+//  fprintf(stdout, "After strcat\n");
+//  FILE *file = fopen(file_name, "r");
+//  fprintf(stdout, "After file fopen\n");
+//  if (file != NULL){
+//    fprintf(stdout, "status = 1\n");
+//    status = 1;
+//    fprintf(stdout, "Oh there's index.html.\n");
+//    strcpy(path, file_name);
+//  } else{
+//    fprintf(stdout, "status = 0\n");
+//    status = 0;
+//  }
 
-  FILE *file = fopen(file_name, "r");
-  if (file != NULL){
-    status = 1;
+  status = open(file_name, O_RDONLY);
+  if (status == -1) {
+    fprintf(stdout, "Oh there's NO index.html.\n");
+  } else{
     fprintf(stdout, "Oh there's index.html.\n");
     strcpy(path, file_name);
-  } else{
-    status = 0;
   }
-  fclose(file);
+  free(file_name);
+
+//  fclose(file);
+
   return status;
 }
 /*
@@ -188,14 +212,14 @@ void handle_files_request(int fd) {
       fprintf(stdout, "This is directory.\n");
 
       // check if index.html exist
-      int index_file_check = has_index_file(http_path, &fileStat);
+      int index_file_check = has_index_file(http_path);
       fprintf(stdout, "index_file_check: %d\n", index_file_check);
       // return -1 if index.html file does not exist
-      if (index_file_check == 0){
+      if (index_file_check == -1){
         // send a list of file in directory
         fprintf(stdout, "index_file_check: %d\n", index_file_check);
 //        ;
-//         http_directory_response(fd, http_path);
+         http_directory_response(fd, http_path);
       } else{
         //send index.html file
         fprintf(stdout, "http_path with directory: %s\n", http_path);
