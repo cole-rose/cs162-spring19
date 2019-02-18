@@ -40,16 +40,23 @@ void not_found_response(int fd){
 void http_file_response(int fd, char *file_name, struct stat *fileStat){
   char *buffer = malloc(BUFFER_SIZE);
   char file_size[64];
+  char file_size_new[64];
   sprintf(file_size, "%lu", fileStat->st_size);
 
     FILE *file = fopen(file_name, "r");
     if (file != NULL){
+      fseek(file, 0, SEEK_END);
+      int len = ftell(file);
+      sprintf(file_size_new, "%d", len);
+
 //      fprintf(stdout, "Can open file.\n");
       http_start_response(fd, 200);
       http_send_header(fd, "Content-Type", http_get_mime_type(file_name));
 //      fprintf(stdout, "Content-Type: %s\n", http_get_mime_type(file_name));
-      http_send_header(fd, "Content-Length", file_size);
+//      http_send_header(fd, "Content-Length", file_size);
+      http_send_header(fd, "Content-Length", file_size_new);
 //      fprintf(stdout, "Content-Length: %s\n", file_size);
+      fprintf(stdout, "Content-Length: %d\n", len);
       http_end_headers(fd);
 
 //      size_t newLen = fread(buffer, sizeof(char), 5000, file);
@@ -73,9 +80,41 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
   free(buffer);
 }
 
-void http_directory_response(int fd, char *file_name, struct stat *fileStat){
-  ;
-}
+//void http_directory_response(int fd, char *dir_path){
+//  DIR *dir = opendir(dir_path);
+//  struct dirent *dir_entry;
+//  struct stat file_stat;
+//  char *full_path = (char*) malloc(BUFFER_SIZE + 1);
+//  char *entry_link = (char*) malloc(BUFFER_SIZE + 1);
+//
+//  http_start_response(fd, 200);
+//  http_send_header(fd, "Content-type", "text/html");
+//  http_send_header(fd, "Server", "httpserver/1.0");
+//  http_end_headers(fd);
+//  http_send_string(fd, "<h2>Index of ");
+//  http_send_string(fd, dir_path);
+//  http_send_string(fd, " </h2><br>\n");
+//
+//  if (dir != NULL) {
+//    while ((dir_entry = readdir(dir)) != NULL) {
+//      strcpy(full_path, dir_path);
+//      if (full_path[strlen(full_path) - 1] != '/') {
+//        strcat(full_path, "/");
+//      }
+//      strcat(full_path, dir_entry->d_name);
+//      stat(full_path, &file_stat);
+//      if (S_ISDIR(file_stat.st_mode)) {
+//        snprintf(entry_link, BUFFER_SIZE, "<a href='%s/'>%s/</a><br>\n", dir_entry->d_name, dir_entry->d_name);
+//      } else {
+//        snprintf(entry_link, BUFFER_SIZE, "<a href='./%s'>%s/</a><br>\n", dir_entry->d_name, dir_entry->d_name);
+//      }
+//      http_send_string(fd, entry_link);
+//    }
+//    closedir(dir);
+//  }
+//  free(entry_link);
+//  free(full_path);
+//}
 
 //int has_index_file(char* path, char *file_path, struct stat *fileStat) {
 int has_index_file(char* path, struct stat *fileStat) {
@@ -150,8 +189,9 @@ void handle_files_request(int fd) {
       // return -1 if index.html file does not exist
       if (index_file_check == 0){
         // send a list of file in directory
-        ;
-        // http_directory_response();
+        fprintf(stdout, "index_file_check: %d\n", index_file_check);
+//        ;
+//         http_directory_response(fd, http_path);
       } else{
         //send index.html file
         fprintf(stdout, "http_path with directory: %s\n", http_path);
