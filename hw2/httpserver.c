@@ -38,13 +38,16 @@ void not_found_response(int fd){
 }
 
 void http_file_response(int fd, char *file_name, struct stat *fileStat){
-  char *buffer = malloc(BUFFER_SIZE);
+  char *buffer = malloc(BUFFER_SIZE+1);
   char file_size[64];
   char file_size_new[64];
   sprintf(file_size, "%lu", fileStat->st_size);
 
     FILE *file = fopen(file_name, "r");
     if (file != NULL){
+      size_t newLen = fread(buffer, sizeof(char), BUFFER_SIZE, file);
+      fprintf(stdout, "newLen: %d\n", newLen);
+
       fseek(file, 0, SEEK_END);
       int len = ftell(file);
       sprintf(file_size_new, "%d", len);
@@ -60,7 +63,8 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
       http_end_headers(fd);
 
 //      size_t newLen = fread(buffer, sizeof(char), 5000, file);
-      size_t newLen = fread(buffer, sizeof(char), BUFFER_SIZE, file);
+
+
       if ( ferror( file ) != 0 ) {
         fputs("Error reading file", stderr);
       } else {
@@ -71,7 +75,7 @@ void http_file_response(int fd, char *file_name, struct stat *fileStat){
       http_send_data(fd, buffer, newLen);
       fclose(file);
 
-//      fprintf(stdout, "source: %s\n", buffer);
+//      fprintf(stdout, "buffer: %s\n", buffer);
 
     }else{
       not_found_response(fd);
