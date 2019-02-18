@@ -38,18 +38,23 @@ void not_found_response(int fd){
 }
 
 void http_file_response(int fd, char *file_name){
-  char *buffer = malloc(BUFFER_SIZE+1);
+
 
   char file_size[64];
 
     FILE *file = fopen(file_name, "r");
     if (file != NULL){
-      size_t newLen = fread(buffer, sizeof(char), BUFFER_SIZE, file);
-      fprintf(stdout, "newLen: %d\n", newLen);
-
       fseek(file, 0, SEEK_END);
       int len = ftell(file);
       sprintf(file_size, "%d", len);
+
+      //put back to start
+      fseek(file, 0, SEEK_SET);
+      char *buffer = malloc(len+1);
+
+      size_t newLen = fread(buffer, sizeof(char), len, file);
+      fprintf(stdout, "newLen: %d\n", newLen);
+
 
 //      fprintf(stdout, "Can open file.\n");
       http_start_response(fd, 200);
@@ -57,6 +62,8 @@ void http_file_response(int fd, char *file_name){
       http_send_header(fd, "Content-Length", file_size);
       fprintf(stdout, "Content-Length: %d\n", len);
       http_end_headers(fd);
+
+
 
       if (ferror(file) != 0 ) {
         fputs("Error reading file", stderr);
@@ -69,12 +76,12 @@ void http_file_response(int fd, char *file_name){
       fclose(file);
 
 //      fprintf(stdout, "buffer: %s\n", buffer);
-
+      free(buffer);
     }else{
       not_found_response(fd);
     }
 
-  free(buffer);
+
 }
 
 //void http_directory_response(int fd, char *dir_path){
