@@ -31,7 +31,7 @@ int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
-
+pthread_cond_t cond;
 void not_found_response(int fd){
   http_start_response(fd, 404);
   http_send_header(fd, "Content-Type:", "text/html");
@@ -85,9 +85,8 @@ void http_file_response(int fd, char *file_name){
 
 void http_directory_response(int fd, char *dir_path){
   DIR *dir = opendir(dir_path);
-  struct dirent *dir_entry;
+  struct dirent *dirent;
   struct stat fileStat;
-
 
   http_start_response(fd, 200);
   http_send_header(fd, "Content-type", "text/html");
@@ -96,33 +95,39 @@ void http_directory_response(int fd, char *dir_path){
   fprintf(stdout, "dir_path: %s\n", dir_path);
 
   if (dir != NULL) {
-    char *full_path = (char*) malloc(BUFFER_SIZE + 1);
-    char *entry_link = (char*) malloc(BUFFER_SIZE + 1);
+    char *path = malloc(BUFFER_SIZE + 1);
+    char *link = malloc(BUFFER_SIZE + 1);
 
-    while ((dir_entry = readdir(dir)) != NULL) {
-      strcpy(full_path, dir_path);
-        fprintf(stdout, "full_path in strcpy(full_path, dir_path): %s\n", full_path);
-      if (full_path[strlen(full_path) - 1] != '/') {
-        strcat(full_path, "/");
+    while ((dirent = readdir(dir)) != NULL) {
+      strcpy(path, dir_path);
+        fprintf(stdout, "path in strcpy(full_path, dir_path): %s\n", path);
+      if (path[strlen(path) - 1] != '/') {
+        strcat(path, "/");
       }
-      strcat(full_path, dir_entry->d_name);
-      fprintf(stdout, "full_path in strcat(full_path, dir_entry->d_name): %s\n", full_path);
-      int file_status = stat(full_path, &fileStat);
+      strcat(path, dirent->d_name);
+      fprintf(stdout, "path in strcat(full_path, dir_entry->d_name): %s\n", path);
+      int file_status = stat(path, &fileStat);
       if (file_status < 0){
+        // send a 404 Not found response
+        fprintf(stdout, "stat(http_path, &fileStat) < 0\n");
         not_found_response(fd);
       } else{
         if (S_ISDIR(fileStat.st_mode)) {
-          snprintf(entry_link, BUFFER_SIZE, "<a href='%s/'>%s/</a>\n", dir_entry->d_name, dir_entry->d_name);
+          fprintf(stdout, "This is directory.\n");
+          fprintf(stdout, "dir_entry->d_name: %s\n", dirent->d_name);
+          snprintf(link, BUFFER_SIZE, "<a href='%s/'>%s/</a>\n", dirent->d_name, dirent->d_name);
         } else {
-          snprintf(entry_link, BUFFER_SIZE, "<a href='./%s'>%s/</a>\n", dir_entry->d_name, dir_entry->d_name);
+          fprintf(stdout, "This is NOT directory.\n");
+          fprintf(stdout, "dir_entry->d_name: %s\n", dirent->d_name);
+          snprintf(link, BUFFER_SIZE, "<a href='./%s'>%s/</a>\n", dirent->d_name, dirent->d_name);
         }
-        http_send_string(fd, entry_link);
+        http_send_string(fd, link);
       }
 
     }
     closedir(dir);
-    free(entry_link);
-    free(full_path);
+    free(link);
+    free(path);
 
   }
 }
@@ -137,17 +142,6 @@ int has_index_file(char* path) {
 //  fprintf(stdout, "After strcpy\n");
   strcat(file_name, "index.html");
 //  fprintf(stdout, "After strcat\n");
-//  FILE *file = fopen(file_name, "r");
-//  fprintf(stdout, "After file fopen\n");
-//  if (file != NULL){
-//    fprintf(stdout, "status = 1\n");
-//    status = 1;
-//    fprintf(stdout, "Oh there's index.html.\n");
-//    strcpy(path, file_name);
-//  } else{
-//    fprintf(stdout, "status = 0\n");
-//    status = 0;
-//  }
 
   status = open(file_name, O_RDONLY);
   if (status == -1) {
@@ -157,8 +151,6 @@ int has_index_file(char* path) {
     strcpy(path, file_name);
   }
   free(file_name);
-
-//  fclose(file);
 
   return status;
 }
@@ -233,18 +225,6 @@ void handle_files_request(int fd) {
 
 
 
-//  http_start_response(fd, 200);
-//  http_send_header(fd, "Content-Type", "text/html");
-//  http_end_headers(fd);
-//  http_send_string(fd,
-//      "<center>"
-//      "<h1>Welcome to httpserver!</h1>"
-//      "<hr>"
-//      "<p>Nothing's here yet.</p>"
-//      "</center>");
-
-
-
 /*
  * Opens a connection to the proxy target (hostname=server_proxy_hostname and
  * port=server_proxy_port) and relays traffic to/from the stream fd and the
@@ -304,11 +284,50 @@ void handle_proxy_request(int fd) {
   */
 }
 
+void *helper(void *args){
+    void (*request_handler)(int) = args;
+    pthread_mutex_lock(&work_queue.lock);
+    while(1) {
+        printf("queue size:%i\n", work_queue.size);
+        if (work_queue.closed) {
+            pthread_mutex_unlock(&work_queue.lock);
+            break;
+        } else if (work_queue.size > 0) {
+            int fd = wq_pop(&work_queue);
+            pthread_mutex_unlock(&work_queue.lock);
+            request_handler(fd);
+            close(fd);
+        } else {
+            pthread_cond_wait(&work_queue.cv, &work_queue.lock);
+        }
+    }
+    return NULL;
+}
 
 void init_thread_pool(int num_threads, void (*request_handler)(int)) {
   /*
    * TODO: Part of your solution for Task 2 goes here!
    */
+
+  if (num_threads <= 0){
+    exit(0);
+  }
+
+  pthread_t threads[num_threads];
+
+  /* start threads */
+  for (int i = 0; i < num_threads; i++){
+    pthread_create(&threads[i], NULL, &helper, request_handler);
+  }
+
+  fprintf(stdout, "Number of threads created: %d", num_threads);
+
+  /* wait all threads to finish */
+  for (int i = 0; i < num_threads; i++) {
+    pthread_join(threads[i], NULL);
+  }
+  fprintf(stdout, "Number of threads closed: %d", num_threads);
+
 }
 
 /*
