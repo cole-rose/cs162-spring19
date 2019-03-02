@@ -309,11 +309,9 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
    * TODO: Part of your solution for Task 2 goes here!
    */
 
-  if (num_threads <= 0){
-    exit(0);
-  }
 
   pthread_t threads[num_threads];
+  fprintf(stdout, "After threads[num_threads]\n");
 
   /* start threads */
   for (int i = 0; i < num_threads; i++){
@@ -388,8 +386,16 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
         client_address.sin_port);
 
     // TODO: Change me?
-    request_handler(client_socket_number);
-    close(client_socket_number);
+    if (num_threads < 0){
+      request_handler(client_socket_number);
+      close(client_socket_number);
+    } else{
+      pthread_mutex_lock(&work_queue.lock);
+      wq_push(&work_queue, client_socket_number);
+      pthread_cond_signal(&work_queue.cv);
+      pthread_mutex_unlock(&work_queue.lock);
+    }
+
 
     printf("Accepted connection from %s on port %d\n",
         inet_ntoa(client_address.sin_addr),
