@@ -282,33 +282,55 @@ void handle_proxy_request(int fd) {
   /* 
   * TODO: Your solution for task 3 belongs here! 
   */
+
+  /* Threading pooling is not implemented */
+  /* TODO: implement threading pooling */
+  /* Create a child thread for client->server connection */
+//  pthread_t thread_sc;
+//  pthread_create(&thread_sc, NULL, proxy_child_thread_work, &(fd_pair){ .from = client_socket_fd, .to = server_socket_fd });
+//  /* Create a child thread for server->client connection */
+//  pthread_t thread_cs;
+//  pthread_create(&thread_cs, NULL, proxy_child_thread_work, &(fd_pair){ .from = server_socket_fd, .to = client_socket_fd });
+//  /* Wait for child thread to finish */
+//  pthread_join(thread_cs, NULL);
+//  pthread_join(thread_sc, NULL);
+//  printf("Finish handling proxy\n");
+
 }
 
+//void *helper(void *args){
+//    void (*request_handler)(int) = args;
+//    pthread_mutex_lock(&work_queue.lock);
+//    while(1) {
+//        printf("queue size:%i\n", work_queue.size);
+//        if (work_queue.closed) {
+//            pthread_mutex_unlock(&work_queue.lock);
+//            break;
+//        } else if (work_queue.size > 0) {
+//            int fd = wq_pop(&work_queue);
+//            pthread_mutex_unlock(&work_queue.lock);
+//            request_handler(fd);
+//            close(fd);
+//        } else {
+//            pthread_cond_wait(&work_queue.cv, &work_queue.lock);
+//        }
+//    }
+//    return NULL;
+//}
+
 void *helper(void *args){
-    void (*request_handler)(int) = args;
-    pthread_mutex_lock(&work_queue.lock);
-    while(1) {
-        printf("queue size:%i\n", work_queue.size);
-        if (work_queue.closed) {
-            pthread_mutex_unlock(&work_queue.lock);
-            break;
-        } else if (work_queue.size > 0) {
-            int fd = wq_pop(&work_queue);
-            pthread_mutex_unlock(&work_queue.lock);
-            request_handler(fd);
-            close(fd);
-        } else {
-            pthread_cond_wait(&work_queue.cv, &work_queue.lock);
-        }
-    }
-    return NULL;
+  void (*request_handler)(int) = args;
+  int fd = wq_pop(&work_queue);
+  request_handler(fd);
+  close(fd);
+
 }
 
 void init_thread_pool(int num_threads, void (*request_handler)(int)) {
   /*
    * TODO: Part of your solution for Task 2 goes here!
    */
-
+  wq_init(&work_queue, num_threads);
 
   pthread_t threads[num_threads];
   fprintf(stdout, "After threads[num_threads]\n");
@@ -318,11 +340,11 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
     pthread_create(&threads[i], NULL, &helper, request_handler);
   }
 
-  fprintf(stdout, "Number of threads created: %d", num_threads);
+  fprintf(stdout, "Number of threads created: %d\n", num_threads);
 
   /* wait all threads to finish */
   for (int i = 0; i < num_threads; i++) {
-    pthread_join(threads[i], NULL);
+    pthread_join(&threads[i], NULL);
   }
   fprintf(stdout, "Number of threads closed: %d", num_threads);
 
@@ -386,10 +408,12 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
         client_address.sin_port);
 
     // TODO: Change me?
-    if (num_threads < 0){
+    if (num_threads == 0){
+      fprintf(stdout, "Num threads is 0");
       request_handler(client_socket_number);
       close(client_socket_number);
     } else{
+      fprintf(stdout, "Num threads is not 0");
       pthread_mutex_lock(&work_queue.lock);
       wq_push(&work_queue, client_socket_number);
       pthread_cond_signal(&work_queue.cv);
