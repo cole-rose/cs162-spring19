@@ -323,6 +323,7 @@ void *helper(void *args){
   int fd = wq_pop(&work_queue);
   request_handler(fd);
   close(fd);
+  return NULL;
 
 }
 
@@ -346,7 +347,7 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
   for (int i = 0; i < num_threads; i++) {
     pthread_join(&threads[i], NULL);
   }
-  fprintf(stdout, "Number of threads closed: %d", num_threads);
+  fprintf(stdout, "Number of threads closed: %d\n", num_threads);
 
 }
 
@@ -409,11 +410,11 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
 
     // TODO: Change me?
     if (num_threads == 0){
-      fprintf(stdout, "Num threads is 0");
+      fprintf(stdout, "Num threads is 0\n");
       request_handler(client_socket_number);
       close(client_socket_number);
     } else{
-      fprintf(stdout, "Num threads is not 0");
+      fprintf(stdout, "Num threads is not 0\n");
       pthread_mutex_lock(&work_queue.lock);
       wq_push(&work_queue, client_socket_number);
       pthread_cond_signal(&work_queue.cv);
