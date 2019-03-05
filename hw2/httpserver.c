@@ -287,47 +287,29 @@ void handle_proxy_request(int fd) {
   /* Threading pooling is not implemented */
   /* TODO: implement threading pooling */
   /* Create a child thread for client->server connection */
-//  pthread_t thread_sc;
-//  pthread_create(&thread_sc, NULL, proxy_child_thread_work, &(fd_pair){ .from = client_socket_fd, .to = server_socket_fd });
-//  /* Create a child thread for server->client connection */
-//  pthread_t thread_cs;
-//  pthread_create(&thread_cs, NULL, proxy_child_thread_work, &(fd_pair){ .from = server_socket_fd, .to = client_socket_fd });
-//  /* Wait for child thread to finish */
+  pthread_t server;
+//  pthread_create(&server, NULL, proxy_child_thread_work, &(fd_pair));
+//  { .from = client_socket_fd, .to = server_socket_fd });
+  /* Create a child thread for server->client connection */
+  pthread_t client;
+//  pthread_create(&client, NULL, proxy_child_thread_work, &(fd_pair));
+//  { .from = server_socket_fd, .to = client_socket_fd });
+  /* Wait for child thread to finish */
 //  pthread_join(thread_cs, NULL);
-//  pthread_join(thread_sc, NULL);
-//  printf("Finish handling proxy\n");
+//  pthread_join(server, NULL);
+  printf("Finish handling proxy\n");
 
 }
 
-//void *helper(void *args){
-//    void (*request_handler)(int) = args;
-//    pthread_mutex_lock(&work_queue.lock);
-//    while(1) {
-//        printf("queue size:%i\n", work_queue.size);
-//        if (work_queue.closed) {
-//            pthread_mutex_unlock(&work_queue.lock);
-//            break;
-//        } else if (work_queue.size > 0) {
-//            int fd = wq_pop(&work_queue);
-//            pthread_mutex_unlock(&work_queue.lock);
-//            request_handler(fd);
-//            close(fd);
-//        } else {
-//            pthread_cond_wait(&work_queue.cv, &work_queue.lock);
-//        }
-//    }
-//    return NULL;
-//}
 
 void *helper(void *args){
-//    size_t key_index = (size_t)hash(key) % &work_queue->size;
-
-//    fprintf(stdout, "work_queue size: %zu\n", &work_queue->size);
-  void (*request_handler)(int) = args;
-  int fd = wq_pop(&work_queue);
-  request_handler(fd);
-  close(fd);
-  return NULL;
+    while (1) {
+        void (*request_handler)(int) = args;
+        int fd = wq_pop(&work_queue);
+        request_handler(fd);
+        close(fd);
+    }
+//  return NULL;
 
 }
 
