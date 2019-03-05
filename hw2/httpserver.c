@@ -32,6 +32,7 @@ char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
 pthread_cond_t cond;
+
 void not_found_response(int fd){
   http_start_response(fd, 404);
   http_send_header(fd, "Content-Type:", "text/html");
@@ -319,6 +320,9 @@ void handle_proxy_request(int fd) {
 //}
 
 void *helper(void *args){
+//    size_t key_index = (size_t)hash(key) % &work_queue->size;
+
+//    fprintf(stdout, "work_queue size: %zu\n", &work_queue->size);
   void (*request_handler)(int) = args;
   int fd = wq_pop(&work_queue);
   request_handler(fd);
@@ -331,23 +335,22 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
   /*
    * TODO: Part of your solution for Task 2 goes here!
    */
-  wq_init(&work_queue, num_threads);
+  wq_init(&work_queue);
 
-  pthread_t threads[num_threads];
+  fprintf(stdout, "num_threads: %d\n", num_threads);
+  fprintf(stdout, "work_queue size: %d\n", work_queue.size);
+
+//  pthread_t threads[num_threads];
   fprintf(stdout, "After threads[num_threads]\n");
 
   /* start threads */
   for (int i = 0; i < num_threads; i++){
-    pthread_create(&threads[i], NULL, &helper, request_handler);
+    pthread_t thread;
+    pthread_create(&thread, NULL, &helper, request_handler);
+//    pthread_create(&threads[i], NULL, &helper, request_handler);
   }
 
   fprintf(stdout, "Number of threads created: %d\n", num_threads);
-
-  /* wait all threads to finish */
-  for (int i = 0; i < num_threads; i++) {
-    pthread_join(&threads[i], NULL);
-  }
-  fprintf(stdout, "Number of threads closed: %d\n", num_threads);
 
 }
 
@@ -411,14 +414,11 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
     // TODO: Change me?
     if (num_threads == 0){
       fprintf(stdout, "Num threads is 0\n");
-      request_handler(client_socket_number);
-      close(client_socket_number);
+//      request_handler(client_socket_number);
+//      close(client_socket_number);
     } else{
       fprintf(stdout, "Num threads is not 0\n");
-      pthread_mutex_lock(&work_queue.lock);
       wq_push(&work_queue, client_socket_number);
-      pthread_cond_signal(&work_queue.cv);
-      pthread_mutex_unlock(&work_queue.lock);
     }
 
 

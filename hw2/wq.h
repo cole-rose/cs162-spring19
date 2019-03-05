@@ -21,7 +21,7 @@ typedef struct wq {
   int closed;
 } wq_t;
 
-void wq_init(wq_t *wq, int num_threads);
+void wq_init(wq_t *wq);
 void wq_push(wq_t *wq, int client_socket_fd);
 int wq_pop(wq_t *wq);
 
