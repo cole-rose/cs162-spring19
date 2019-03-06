@@ -33,10 +33,6 @@ char *server_proxy_hostname;
 int server_proxy_port;
 pthread_cond_t cond;
 
-typedef struct fd_pair {
-    int from;
-    int to;
-} fd_pair;
 
 void not_found_response(int fd){
   http_start_response(fd, 404);
@@ -312,9 +308,10 @@ void handle_proxy_request(int fd) {
 //  size_t newLen = fread(buffer, sizeof(char), len, file);
 //  fprintf(stdout, "newLen: %d\n", newLen);
 
-  size_t BUF_SIZE = 3000000;
+  size_t BUF_SIZE = 8192;
   char read_buf[BUF_SIZE];
   read(fd, read_buf, BUF_SIZE);
+  fprintf(stdout, "read_buf: %s", read_buf);
   send(client_socket_fd, read_buf, BUF_SIZE, MSG_EOR);
 
   recv(client_socket_fd, read_buf, BUF_SIZE, MSG_PEEK);
@@ -323,7 +320,7 @@ void handle_proxy_request(int fd) {
 //  http_send_data(fd, read_buf, BUF_SIZE);
 
 
-
+  memset(read_buf, '\0', sizeof(read_buf));
   printf("Finish handling proxy\n");
 
 }
