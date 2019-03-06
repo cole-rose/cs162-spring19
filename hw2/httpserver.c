@@ -300,13 +300,14 @@ void handle_proxy_request(int fd) {
 //  pthread_join(client, NULL);
 //  pthread_join(server, NULL);
 
-  int BUF_SIZE = 8192;
+  size_t BUF_SIZE = 8192;
   char read_buf[BUF_SIZE];
   read(client_socket_fd, read_buf, BUF_SIZE);
 
   recv(client_socket_fd, read_buf, BUF_SIZE, MSG_PEEK);
 
-  send(fd, read_buf, BUF_SIZE, MSG_EOR);
+//  send(fd, read_buf, BUF_SIZE, MSG_EOR);
+  http_send_data(fd, read_buf, BUF_SIZE);
 
 
 
