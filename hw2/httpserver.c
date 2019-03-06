@@ -33,6 +33,10 @@ char *server_proxy_hostname;
 int server_proxy_port;
 pthread_cond_t cond;
 
+typedef struct fd_pair {
+    int from;
+    int to;
+} fd_pair;
 
 void not_found_response(int fd){
   http_start_response(fd, 404);
@@ -225,6 +229,27 @@ void handle_files_request(int fd) {
   free(http_path);
 }
 
+void *proxy_helper(void *args){
+  int thread = (unsigned int)(pthread_self() % 100);
+
+  int from_fd = ((fd_pair*)args)->from;
+  int to_fd = ((fd_pair*)args)->to;
+
+  ssize_t size = BUFFER_SIZE;
+  char buffer[size];
+
+  while ((size = read(from_fd, buffer, BUFFER_SIZE)) > 0) {
+    printf("thread: %i\treads size: %li\n", thread, size);
+    send(to_fd, buffer, size, MSG_EOR);
+    printf("thread: %i\twrites size: %li\n", thread, size);
+  }
+  close(from_fd);
+  close(to_fd);
+  printf("thread: %i\tend proxy \n", thread);
+  return NULL;
+
+}
+
 
 
 /*
@@ -286,15 +311,15 @@ void handle_proxy_request(int fd) {
   */
 
 //
-//  pthread_t server;
-//  pthread_create(&server, NULL, proxy_helper, &fd);
-//
-//  pthread_t client;
-//  pthread_create(&client, NULL, proxy_helper, &client_socket_fd);
-//
-//  /* Wait for child thread to finish */
-//  pthread_join(client, NULL);
-//  pthread_join(server, NULL);
+  pthread_t server;
+  pthread_create(&server, NULL, proxy_helper, &(fd_pair){ .from = client_socket_fd, .to = fd });
+
+  pthread_t client;
+  pthread_create(&client, NULL, proxy_helper, &(fd_pair){ .from = fd, .to = client_socket_fd });
+
+  /* Wait for child thread to finish */
+  pthread_join(client, NULL);
+  pthread_join(server, NULL);
 
 //  char buf_size[64];
 //  fseek(file, 0, SEEK_END);
@@ -308,23 +333,23 @@ void handle_proxy_request(int fd) {
 //  size_t newLen = fread(buffer, sizeof(char), len, file);
 //  fprintf(stdout, "newLen: %d\n", newLen);
 
-  char read_buf[BUFFER_SIZE];
-  char* data = malloc(BUFFER_SIZE + 1);
-  ssize_t bytes_read = 1;
-
-  while ((bytes_read = read(fd, read_buf, BUFFER_SIZE)) > 0)
-  {
-    strcat(data, read_buf);
+//  char read_buf[BUFFER_SIZE];
+//  char* data = malloc(BUFFER_SIZE + 1);
+//  ssize_t bytes_read = 1;
+//
+//  while ((bytes_read = read(fd, read_buf, BUFFER_SIZE)) > 0)
+//  {
+//    strcat(data, read_buf);
 //    concat to bigger buffer, realloc if necessary
-  }
+//  }
 
-  size_t new_size = sizeof(data);
-
-  send(client_socket_fd, data, new_size, MSG_EOR);
-
-  recv(client_socket_fd, data, new_size, MSG_PEEK);
-
-  send(fd, data, new_size, MSG_EOR);
+//  size_t new_size = sizeof(data);
+//
+//  send(client_socket_fd, data, new_size, MSG_EOR);
+//
+//  recv(client_socket_fd, data, new_size, MSG_PEEK);
+//
+//  send(fd, data, new_size, MSG_EOR);
 
 
 //  read(fd, read_buf, BUFFER_SIZE);
