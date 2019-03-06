@@ -308,19 +308,36 @@ void handle_proxy_request(int fd) {
 //  size_t newLen = fread(buffer, sizeof(char), len, file);
 //  fprintf(stdout, "newLen: %d\n", newLen);
 
-  size_t BUF_SIZE = 8192;
-  char read_buf[BUF_SIZE];
-  read(fd, read_buf, BUF_SIZE);
-  fprintf(stdout, "read_buf: %s", read_buf);
-  send(client_socket_fd, read_buf, BUF_SIZE, MSG_EOR);
+  char read_buf[BUFFER_SIZE];
+  char* data = malloc(BUFFER_SIZE + 1);
+  ssize_t bytes_read = 1;
 
-  recv(client_socket_fd, read_buf, BUF_SIZE, MSG_PEEK);
+  while ((bytes_read = read(fd, read_buf, BUFFER_SIZE)) > 0)
+  {
+    strcat(data, read_buf);
+//    concat to bigger buffer, realloc if necessary
+  }
 
-  send(fd, read_buf, BUF_SIZE, MSG_EOR);
+  size_t new_size = sizeof(data);
+
+  send(client_socket_fd, data, new_size, MSG_EOR);
+
+  recv(client_socket_fd, data, new_size, MSG_PEEK);
+
+  send(fd, data, new_size, MSG_EOR);
+
+
+//  read(fd, read_buf, BUFFER_SIZE);
+
+//  send(client_socket_fd, read_buf, BUFFER_SIZE, MSG_EOR);
+//
+//  recv(client_socket_fd, read_buf, BUFFER_SIZE, MSG_PEEK);
+//
+//  send(fd, read_buf, BUFFER_SIZE, MSG_EOR);
 //  http_send_data(fd, read_buf, BUF_SIZE);
 
 
-  memset(read_buf, '\0', sizeof(read_buf));
+//  memset(read_buf, '\0', sizeof(read_buf));
   printf("Finish handling proxy\n");
 
 }
