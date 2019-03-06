@@ -230,24 +230,18 @@ void handle_files_request(int fd) {
 }
 
 void *proxy_helper(void *args){
-  int thread = (unsigned int)(pthread_self() % 100);
 
   int from_fd = ((fd_pair*)args)->from;
   int to_fd = ((fd_pair*)args)->to;
 
   ssize_t size = BUFFER_SIZE;
   char buffer[size];
-
+  memset(buffer, '/0', size);
   while ((size = read(from_fd, buffer, BUFFER_SIZE)) > 0) {
-    printf("thread: %i\treads size: %li\n", thread, size);
     send(to_fd, buffer, size, MSG_EOR);
-    printf("thread: %i\twrites size: %li\n", thread, size);
   }
   close(from_fd);
   close(to_fd);
-  printf("thread: %i\tend proxy \n", thread);
-  return NULL;
-
 }
 
 
@@ -375,8 +369,6 @@ void *helper(void *args){
         request_handler(fd);
         close(fd);
     }
-//  return NULL;
-
 }
 
 void init_thread_pool(int num_threads, void (*request_handler)(int)) {
