@@ -33,6 +33,11 @@ char *server_proxy_hostname;
 int server_proxy_port;
 pthread_cond_t cond;
 
+typedef struct fd_pair {
+    int from;
+    int to;
+} fd_pair;
+
 void not_found_response(int fd){
   http_start_response(fd, 404);
   http_send_header(fd, "Content-Type:", "text/html");
@@ -284,19 +289,27 @@ void handle_proxy_request(int fd) {
   * TODO: Your solution for task 3 belongs here! 
   */
 
-  /* Threading pooling is not implemented */
-  /* TODO: implement threading pooling */
-  /* Create a child thread for client->server connection */
-  pthread_t server;
-//  pthread_create(&server, NULL, proxy_child_thread_work, &(fd_pair));
-//  { .from = client_socket_fd, .to = server_socket_fd });
-  /* Create a child thread for server->client connection */
-  pthread_t client;
-//  pthread_create(&client, NULL, proxy_child_thread_work, &(fd_pair));
-//  { .from = server_socket_fd, .to = client_socket_fd });
-  /* Wait for child thread to finish */
-//  pthread_join(thread_cs, NULL);
+//
+//  pthread_t server;
+//  pthread_create(&server, NULL, proxy_helper, &fd);
+//
+//  pthread_t client;
+//  pthread_create(&client, NULL, proxy_helper, &client_socket_fd);
+//
+//  /* Wait for child thread to finish */
+//  pthread_join(client, NULL);
 //  pthread_join(server, NULL);
+
+  int BUF_SIZE = 8192;
+  char read_buf[BUF_SIZE];
+  read(client_socket_fd, read_buf, BUF_SIZE);
+
+  recv(client_socket_fd, read_buf, BUF_SIZE, MSG_PEEK);
+
+  send(fd, read_buf, BUF_SIZE, MSG_EOR);
+
+
+
   printf("Finish handling proxy\n");
 
 }
