@@ -302,12 +302,13 @@ void handle_proxy_request(int fd) {
 
   size_t BUF_SIZE = 8192;
   char read_buf[BUF_SIZE];
-  read(client_socket_fd, read_buf, BUF_SIZE);
+  read(fd, read_buf, BUF_SIZE);
+  send(client_socket_fd, read_buf, BUF_SIZE, MSG_EOR);
 
   recv(client_socket_fd, read_buf, BUF_SIZE, MSG_PEEK);
 
-//  send(fd, read_buf, BUF_SIZE, MSG_EOR);
-  http_send_data(fd, read_buf, BUF_SIZE);
+  send(fd, read_buf, BUF_SIZE, MSG_EOR);
+//  http_send_data(fd, read_buf, BUF_SIZE);
 
 
 
