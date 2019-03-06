@@ -300,7 +300,19 @@ void handle_proxy_request(int fd) {
 //  pthread_join(client, NULL);
 //  pthread_join(server, NULL);
 
-  size_t BUF_SIZE = 8192;
+//  char buf_size[64];
+//  fseek(file, 0, SEEK_END);
+//  int len = ftell(file);
+//  sprintf(file_size, "%d", len);
+//
+//  //put file pointer back to the beginning
+//  fseek(file, 0, SEEK_SET);
+//  char *buffer = malloc(len+1);
+//
+//  size_t newLen = fread(buffer, sizeof(char), len, file);
+//  fprintf(stdout, "newLen: %d\n", newLen);
+
+  size_t BUF_SIZE = 3000000;
   char read_buf[BUF_SIZE];
   read(fd, read_buf, BUF_SIZE);
   send(client_socket_fd, read_buf, BUF_SIZE, MSG_EOR);
