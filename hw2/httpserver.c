@@ -18,7 +18,10 @@
 #include "libhttp.h"
 #include "wq.h"
 
+<<<<<<< HEAD
 #define BUFFER_SIZE 8192
+=======
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 /*
  * Global configuration variables.
  * You need to use these in your implementation of handle_files_request and
@@ -31,6 +34,7 @@ int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
+<<<<<<< HEAD
 pthread_cond_t cond;
 
 typedef struct fd_pair {
@@ -160,6 +164,10 @@ int has_index_file(char* path) {
 
   return status;
 }
+=======
+
+
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 /*
  * Reads an HTTP request from stream (fd), and writes an HTTP response
  * containing:
@@ -180,6 +188,7 @@ void handle_files_request(int fd) {
 
   struct http_request *request = http_request_parse(fd);
 
+<<<<<<< HEAD
   char *http_path = malloc(BUFFER_SIZE+1);
   strcpy(http_path, server_files_directory);
   strcat(http_path, request->path);
@@ -246,6 +255,20 @@ void *proxy_helper(void *args){
 
 
 
+=======
+  http_start_response(fd, 200);
+  http_send_header(fd, "Content-Type", "text/html");
+  http_end_headers(fd);
+  http_send_string(fd,
+      "<center>"
+      "<h1>Welcome to httpserver!</h1>"
+      "<hr>"
+      "<p>Nothing's here yet.</p>"
+      "</center>");
+}
+
+
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 /*
  * Opens a connection to the proxy target (hostname=server_proxy_hostname and
  * port=server_proxy_port) and relays traffic to/from the stream fd and the
@@ -303,6 +326,7 @@ void handle_proxy_request(int fd) {
   /* 
   * TODO: Your solution for task 3 belongs here! 
   */
+<<<<<<< HEAD
 
 //
   pthread_t server;
@@ -329,10 +353,16 @@ void *helper(void *args){
     }
 }
 
+=======
+}
+
+
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 void init_thread_pool(int num_threads, void (*request_handler)(int)) {
   /*
    * TODO: Part of your solution for Task 2 goes here!
    */
+<<<<<<< HEAD
   wq_init(&work_queue);
 
   fprintf(stdout, "num_threads: %d\n", num_threads);
@@ -350,6 +380,8 @@ void init_thread_pool(int num_threads, void (*request_handler)(int)) {
 
   fprintf(stdout, "Number of threads created: %d\n", num_threads);
 
+=======
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 }
 
 /*
@@ -410,6 +442,7 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
         client_address.sin_port);
 
     // TODO: Change me?
+<<<<<<< HEAD
     if (num_threads == 0){
       fprintf(stdout, "Num threads is 0\n");
 //      request_handler(client_socket_number);
@@ -419,6 +452,10 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
       wq_push(&work_queue, client_socket_number);
     }
 
+=======
+    request_handler(client_socket_number);
+    close(client_socket_number);
+>>>>>>> 21ae9e5292d8f10d81cd3e34aaaa0e4725b899a0
 
     printf("Accepted connection from %s on port %d\n",
         inet_ntoa(client_address.sin_addr),
